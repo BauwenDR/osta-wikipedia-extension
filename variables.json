@@ -1,0 +1,20 @@
+[
+	{
+		"name": "language",
+		"title": "Language",
+		"type": "select",
+		"required": true,
+		"options": [
+			{"name": "English", "value": "en"},
+			{"name": "Nederlands", "value": "nl"},
+			{"name": "Svensk", "value": "sv"},
+			{"name": "Русский", "value": "ru"}
+		]
+	},
+	{
+		"name": "api-token",
+		"title": "Wikimedia Personal Access Token",
+		"type": "text",
+		"required": false
+	}
+]
