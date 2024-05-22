@@ -6,9 +6,29 @@
 		"required": true,
 		"options": [
 			{"name": "English", "value": "en"},
+			{"name": "Deutsch", "value": "de"},
+			{"name": "Français", "value": "fr"},
+			{"name": "Español", "value": "es"},
+			{"name": "日本語", "value": "ja"},
+			{"name": "Русский", "value": "ru"},
+			{"name": "Português", "value": "pt"},
+			{"name": "Italiano", "value": "it"},
+			{"name": "中国人", "value": "zh"},
+			{"name": "فارسی", "value": "fa"},
+			{"name": "Polski", "value": "pl"},
+			{"name": "عربي", "value": "ar"},
 			{"name": "Nederlands", "value": "nl"},
+			{"name": "עִברִית", "value": "he"},
+			{"name": "Українська", "value": "uk"},
+			{"name": "Türkçe", "value": "tr"},
+			{"name": "bahasa Indonesia", "value": "id"},
+			{"name": "한국인", "value": "ko"},
+			{"name": "čeština", "value": "cs"},
 			{"name": "Svensk", "value": "sv"},
-			{"name": "Русский", "value": "ru"}
+			{"name": "Suomalainen", "value": "fi"},
+			{"name": "Tiếng Việt", "value": "vi"},
+			{"name": "Magyar", "value": "hu"},
+			{"name": "Српски", "value": "sr"}
 		]
 	},
 	{
