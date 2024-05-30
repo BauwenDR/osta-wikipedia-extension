@@ -56,7 +56,6 @@ wikipedia_api = "https://" + get_wikipedia_language() + ".wikipedia.org/w/api.ph
 bearer_token = get_api_token()
 if bearer_token:
     api_headers['Authorization'] = "Bearer " + bearer_token
-    batch_size = 500
     
 geosearch_results = get_geosearch_results(boundingBox.topLeft.lat, boundingBox.topLeft.lng, boundingBox.bottomRight.lat, boundingBox.bottomRight.lng)
 geodata = geosearch_results.query.geosearch

@@ -34,7 +34,7 @@
 	{
 		"name": "api-token",
 		"title": "Wikimedia Personal Access Token",
-		"type": "text",
+		"type": "password",
 		"required": false
 	}
 ]
