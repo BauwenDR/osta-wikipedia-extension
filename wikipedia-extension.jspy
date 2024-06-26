@@ -1,4 +1,5 @@
 import axios
+from math import cos, asin, sqrt, PI
 
 wikipedia_api = ""
 api_headers = {}
@@ -11,7 +12,18 @@ async def get_wikipedia_language():
 async def get_api_token():
     return getVariableFromStorage("api-token")
 
-async def get_geosearch_results(top_left_lat, top_left_lon, bottom_right_lat, bottom_right_lon):
+def get_distance_between_points(lat1, lon1, lat2, lon2):
+    r = 6371  # Radius of Earth in km
+    p = PI / 180
+    a = 0.5 - cos((lat2 - lat1) * p) / 2 + cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2
+    return 2 * r * asin(sqrt(a))
+
+def get_size_of_bounding_box(top_left_lat, top_left_lon, bottom_right_lat, bottom_right_lon):
+    width = get_distance_between_points(top_left_lat, top_left_lon, top_left_lat, bottom_right_lon)
+    height = get_distance_between_points(top_left_lat, top_left_lon, bottom_right_lat, top_left_lon)
+    return width * height
+
+async def fetch_geosearch_results(top_left_lat, top_left_lon, bottom_right_lat, bottom_right_lon):
     params = {
         "action": "query",
         "format": "json",
@@ -22,7 +34,47 @@ async def get_geosearch_results(top_left_lat, top_left_lon, bottom_right_lat, bo
 
     return axios.get(wikipedia_api, {params, headers: api_headers}).data
 
-async def get_extract(page_ids, cont='', excont=''):
+# Device into smaller boxes when area is too big or when more than 500 results where found
+async def get_geosearch_results(top_left_lat, top_left_lon, bottom_right_lat, bottom_right_lon):
+    boxes_to_process = [{top_left_lat, top_left_lon, bottom_right_lat, bottom_right_lon}]
+    unique_pages = {}
+
+    while boxes_to_process.length > 0:
+        box = boxes_to_process.pop()
+        size = get_size_of_bounding_box(box.top_left_lat, box.top_left_lon, box.bottom_right_lat, box.bottom_right_lon)
+
+        if size > 360:
+            mid_lat = (box.top_left_lat + box.bottom_right_lat) / 2
+            mid_lon = (box.top_left_lon + box.bottom_right_lon) / 2
+
+            if (box.top_left_lat - box.bottom_right_lat) > (box.bottom_right_lon - box.top_left_lon):
+                boxes_to_process.push({"top_left_lat": box.top_left_lat, "top_left_lon": box.top_left_lon, "bottom_right_lat": mid_lat, "bottom_right_lon": box.bottom_right_lon})
+                boxes_to_process.push({"top_left_lat": mid_lat, "top_left_lon": box.top_left_lon, "bottom_right_lat": box.bottom_right_lat, "bottom_right_lon": box.bottom_right_lon})
+
+            else:
+                boxes_to_process.push({"top_left_lat": box.top_left_lat, "top_left_lon": box.top_left_lon, "bottom_right_lat": box.bottom_right_lat, "bottom_right_lon": mid_lon})
+                boxes_to_process.push({"top_left_lat": box.top_left_lat, "top_left_lon": mid_lon, "bottom_right_lat": box.bottom_right_lat, "bottom_right_lon": box.bottom_right_lon})
+        else:
+            result = fetch_geosearch_results(box.top_left_lat, box.top_left_lon, box.bottom_right_lat, box.bottom_right_lon)
+            geosearch_results = result.query.geosearch
+            for item in geosearch_results:
+                unique_pages[item.pageid] = item
+
+            if geosearch_results.length == 500:
+                mid_lat = (box.top_left_lat + box.bottom_right_lat) / 2
+                mid_lon = (box.top_left_lon + box.bottom_right_lon) / 2
+
+                if (box.top_left_lat - box.bottom_right_lat) > (box.bottom_right_lon - box.top_left_lon):
+                    boxes_to_process.push({"top_left_lat": box.top_left_lat, "top_left_lon": box.top_left_lon, "bottom_right_lat": mid_lat, "bottom_right_lon": box.bottom_right_lon})
+                    boxes_to_process.push({"top_left_lat": mid_lat, "top_left_lon": box.top_left_lon, "bottom_right_lat": box.bottom_right_lat, "bottom_right_lon": box.bottom_right_lon})
+
+                else:
+                    boxes_to_process.push({"top_left_lat": box.top_left_lat, "top_left_lon": box.top_left_lon, "bottom_right_lat": box.bottom_right_lat, "bottom_right_lon": mid_lon})
+                    boxes_to_process.push({"top_left_lat": box.top_left_lat, "top_left_lon": mid_lon, "bottom_right_lat": box.bottom_right_lat, "bottom_right_lon": box.bottom_right_lon})
+
+    return unique_pages
+
+async def get_extracts(page_ids, cont='', excont=''):
     page_ids_str = page_ids.join('|')
 
     params = {
@@ -47,36 +99,39 @@ async def get_extract(page_ids, cont='', excont=''):
     )
 
     if data.continue:
-        return_data = return_data.concat(get_extract(page_ids, data.continue.continue, data.continue.excontinue))
+        return_data = return_data.concat(get_extracts(page_ids, data.continue.continue, data.continue.excontinue))
 
     return return_data
-    
+
 # Main
 wikipedia_api = "https://" + get_wikipedia_language() + ".wikipedia.org/w/api.php?origin=*"
 bearer_token = get_api_token()
 if bearer_token:
     api_headers['Authorization'] = "Bearer " + bearer_token
-    
-geosearch_results = get_geosearch_results(boundingBox.topLeft.lat, boundingBox.topLeft.lng, boundingBox.bottomRight.lat, boundingBox.bottomRight.lng)
-geodata = geosearch_results.query.geosearch
 
-landmarks = []
+geosearch_results = get_geosearch_results(boundingBox.topLeft.lat, boundingBox.topLeft.lng, boundingBox.bottomRight.lat, boundingBox.bottomRight.lng)
+
 page_ids = {}
-geodata.forEach((location, index) =>
+landmarks = []
+
+Object.keys(geosearch_results).forEach((pageid, index) =>
+    location = geosearch_results[pageid]
     landmarks[index] = {
+        'pageid': pageid,
         'lat': location.lat,
         'lng': location.lon,
         'name': location.title,
         'description': '',
         'types': []
     }
+
     page_ids[location.pageid] = index
 )
 
-for i in range(geodata.length/batch_size):
-    batch = geodata.slice(i*batch_size, (i+1)*batch_size)
+for i in range(landmarks.length/batch_size):
+    batch = landmarks.slice(i*batch_size, (i+1)*batch_size)
     batch_ids = batch.map(data => data.pageid)
-    extract_data = get_extract(batch_ids)
+    extract_data = get_extracts(batch_ids)
 
     for batch_landmark in extract_data:
         landmarks[page_ids[batch_landmark.pageid]].description = batch_landmark.extract

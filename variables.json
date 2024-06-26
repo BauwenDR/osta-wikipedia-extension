@@ -33,7 +33,7 @@
 	},
 	{
 		"name": "api-token",
-		"title": "Wikimedia Personal Access Token",
+		"title": "Wikipedia Personal Access Token",
 		"type": "password",
 		"required": false
 	}
